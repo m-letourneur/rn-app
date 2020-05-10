@@ -1,28 +1,31 @@
 import React, { 
-  useCallback, 
+  useCallback,
   useState,
   useEffect
  } from "react";
 import { Button, StyleSheet, View, Text } from "react-native";
 
+//Navigation
 import 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 
+// Firebase: auth and firestore
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import {GoogleSignInButton, SignOutButton} from './apps/AuthenticationManager/index'
 import ProtectedApp from './apps/ProtectedApp/index'
 
-const AuthWrappedApp = () => {
+const HomeScreen = ({navigation}) => {
   // Set an initializing state whilst Firebase connects
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState();
 
-  function RedirectToProtectedAppButton() {
+  function NavigateProtectedAppButton() {
     return (
       <Button
         title="Let's go!"
-        onPress={() => ProtectedApp()}
+        onPress={() => navigation.navigate('ProtectedApp')}
       />
     );
   }
@@ -44,7 +47,7 @@ const AuthWrappedApp = () => {
       alignItems: 'center'
     }
   });
-  
+
   if (initializing) return null;
 
   if (!user) {
@@ -55,21 +58,24 @@ const AuthWrappedApp = () => {
       </View>
     );
   }
-
   return (
     <View style={styles.center}>
-      <Text>Welcome aboard {user.email}</Text>
-      <RedirectToProtectedAppButton/>
+      <Text>Welcome aboard {user.displayName}</Text>
+      <NavigateProtectedAppButton/>
       <SignOutButton/>
     </View>
   );
 }
 
+const Stack = createStackNavigator();
+
 export default function App() {
   return (
     <NavigationContainer>
-      <AuthWrappedApp/>
+      <Stack.Navigator>
+        <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ title: 'Home' }}/>
+        <Stack.Screen name="ProtectedApp" component={ProtectedApp} options={{ title: 'Getting Serious' }}/>
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
-

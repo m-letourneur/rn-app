@@ -6,27 +6,13 @@ import { AppRegistry, StyleSheet, Text, TouchableOpacity, View } from 'react-nat
 import { RNCamera } from 'react-native-camera';
 import firestore from '@react-native-firebase/firestore';
 
-class CameraApp extends PureComponent {  
+class CameraApp extends PureComponent {
 
   constructor(props){
     super(props);
     this.picId = 'myfirstpic'
   }
-      
-  push = async (data) => {
-    firestore()
-      .collection('pic')
-      .doc(this.picId)
-      .set({
-        id: this.picId,
-        timestamp: firestore.FieldValue.serverTimestamp(),
-        dataBase64: data,
-      })
-      .then(() => {
-        console.log('Click pic data added!');
-      });
-  }
-  
+
   render() {
     return (
       <View style={styles.container}>
@@ -62,32 +48,42 @@ class CameraApp extends PureComponent {
     );
   }
 
-  getBase64 = async (imageUri) => {
-    const filepath = imageUri.split('//')[1];
-    const imageUriBase64 = await RNFS.readFile(filepath, 'base64');
-    return `data:image/jpeg;base64,${imageUriBase64}`;
+  // getBase64 = async (imageUri) => {
+  //   const filepath = imageUri.split('//')[1];
+  //   const imageBase64 = await RNFS.readFile(filepath, 'base64');
+  //   return `data:image/jpeg;base64,${imageBase64}`;
+  // }
+
+  push = (docId, imageBase64) => {
+    const query = firestore()
+          .collection('pic')
+          .doc(docId);
+    console.log("Push docId: ", docId);
+    let qPromise = query.update({
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        blob: firestore.Blob.fromBase64String(imageBase64),
+      })
+      .then(() => {
+        console.log('Pic has been successfully pushed');
+      })
+      .catch((error) => {
+        console.log('Pic has not been pushed. Raised error: ', error);
+      });
   }
-  
+
   takePicture = async () => {
     if (this.camera) {
       const options = { quality: 0.5, base64: true };
-      // const data = await this.camera.takePictureAsync(options);
-      const { uri } = await this.camera.takePictureAsync(options);
+      // const { uri } = await this.camera.takePictureAsync(options);
+      const data = await this.camera.takePictureAsync(options);
 
-      // console.log("Pic: data.uri = " + data.uri);
-      console.log("Pic: data.uri = " + uri);
-      console.log("Pic: data is ready to push");
-      // this.setState({ photoUri: uri });//show image to user now
-      this.props.handleSetPhotoUri(uri);
-      // const base64 = await this.getBase64(data.uri);
-      const base64 = await this.getBase64(uri);
-      console.log('base64: ', base64);
-      // this.props.actions.sendImageToServer(base64);
-      await this.push(base64);
-      console.log("Pic: data has been pushed");
+      console.log("Pic: uri = " + data.uri);
+      // const imageBase64 = await this.getBase64(uri);
+      console.log('Pic: ready to async push imageBase64');
+      this.push(this.picId, data.base64);
     }
   };
-  
+
 
 }
 
@@ -114,4 +110,3 @@ const styles = StyleSheet.create({
 });
 
 export default CameraApp;
-// AppRegistry.registerComponent('CameraApp', () => ExampleApp);

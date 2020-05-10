@@ -3,13 +3,15 @@ import React, {
   useState,
   useEffect
  } from "react";
-import { Dimensions, Alert, Button, Linking, StyleSheet, View, Text, Image, ImageBackground} from "react-native";
+import { Dimensions, Alert,
+  Button, Linking, StyleSheet,
+  View, Text, Image, ImageBackground} from "react-native";
 
 //Navigation
 import 'react-native-gesture-handler';
 import { createStackNavigator } from '@react-navigation/stack';
 
-import { CameraApp } from '../CameraManager/index'
+import {CameraApp} from '../CameraManager/index'
 import firestore from '@react-native-firebase/firestore';
 import messaging from '@react-native-firebase/messaging';
 
@@ -57,38 +59,38 @@ function PictureViewScreen() {
       }
   });
 
-  const pictureId = 'myfirstpic'
+  const picId = 'myfirstpic'
 
-  const [picture, setPicture] = useState();
-  const [base64, setBase64] = useState();
+  const [picData, setPicData] = useState();
+  const [base64Data, setBase64Data] = useState();
+
 
   useEffect(() => {
     const subscriber = firestore()
       .collection('pic')
-      .doc(pictureId)
+      .doc(picId)
       .onSnapshot(documentSnapshot => {
         console.log('Picture data onSnapshot - data.id ', documentSnapshot.data().id);
-        setPicture(documentSnapshot.data());
+        setPicData(documentSnapshot.data())
       });
 
     // Stop listening for updates when no longer required
-    return subscriber;
+    return () => subscriber();
   }, []);
 
-  useEffect(() => {
-    if (picture) {
-      let blob = firestore.Blob.fromUint8Array(picture['blob'].toUint8Array());
-      let base64 = blob.toBase64();
-      let prefix = 'data:image/jpeg;base64,';
-      base64 = prefix + base64;
-      console.log("setBase64(base64);")
-      setBase64(base64);
+  const reader = new FileReader();
+  if(picData){
+    reader.readAsDataURL(picData.blob);
+    reader.onloadend = function() {
+      let data = reader.result;
+      setBase64Data(data);
+      console.log(data);
     }
-  }, [picture]);
+  }
 
-  const timestamp = picture ? picture.timestamp: null;
-  const imageBase64 = base64;
-
+  // const imageBase64 = picData ? picData.blob : null;
+  const imageBase64 = base64Data ? base64Data : null;
+  const timestamp = picData ? picData.timestamp: null;
   return (
     <View style={styles.container}>
       {
@@ -128,7 +130,6 @@ function ProtectedApp() {
     const unsubscribe = messaging().onMessage(async remoteMessage => {
       Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
     });
-
     return unsubscribe;
   }, []);
   //End Cloud messaging
@@ -139,7 +140,6 @@ function ProtectedApp() {
       <Stack.Screen name="PictureViewScreen" component={PictureViewScreen} options={{ title: 'See the latest Pic' }}/>
       <Stack.Screen name="CameraScreen" component={CameraScreen} options={{ title: 'Take another Pic' }}/>
     </Stack.Navigator>
-
   );
 }
 
