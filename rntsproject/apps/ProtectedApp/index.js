@@ -22,7 +22,46 @@ const styles = StyleSheet.create({
 });
 
 
-function CameraAppHomeScreen({navigation}) {
+
+function CameraAppHomeScreen({route, navigation}) {
+  
+  const { userId } = route.params;
+  const pictureId = 'myfirstpic';
+  const [triggerSnap,setTriggerSnap] = useState({enable: false});
+  
+  useEffect(() => {
+    const subscriber = firestore()
+      .collection('triggersnap')
+      .doc(pictureId)
+      .onSnapshot(documentSnapshot => {
+        documentSnapshot.data() && console.log('triggersnap onSnapshot - data.id ', documentSnapshot.data());
+        setTriggerSnap(documentSnapshot.data());
+      });
+
+    // Stop listening for updates when no longer required
+    return subscriber;
+  }, []);
+  
+  
+  const push = (docId, action, issuer) => {
+    const query = firestore()
+          .collection('triggersnap')
+          .doc(docId);
+    console.log("Push triggersnap docId: ", docId);
+    console.log("Push triggersnap issuer: ", issuer);
+    let qPromise = query.update({
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        enable: action,
+        issuer: issuer
+      })
+      .then(() => {
+        console.log('triggersnap has been successfully pushed');
+      })
+      .catch((error) => {
+        console.log('triggersnap has not been pushed. Raised error: ', error);
+      });
+  }
+  
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Button
@@ -33,6 +72,14 @@ function CameraAppHomeScreen({navigation}) {
         title="Take another Pic"
         onPress={() => navigation.navigate('CameraScreen')}
       />
+      <Button
+        title={!triggerSnap.enable ? "Take remote snap" : "Cancel remote snap"}
+        onPress={() => {
+          push(pictureId, !triggerSnap.enable, userId);
+          alert(!triggerSnap.enable ? "You requested to take a remote snap!" : "You cancelled remote snap!")
+        }}
+      />
+
     </View>
   );
 }
@@ -105,15 +152,19 @@ function PictureViewScreen() {
   );
 }
 
-function CameraScreen() {
+function CameraScreen({route, navigation}) {
+  const { userId } = route.params;
+
   return(
-      <CameraApp/>
+      <CameraApp userId={userId}/>
   );
 }
 
 const Stack = createStackNavigator();
 
-function ProtectedApp() {
+function ProtectedApp({route, navigation}) {
+  
+  const { userId } = route.params;
 
   //Cloud messaging
   async function requestUserPermission() {
@@ -132,12 +183,13 @@ function ProtectedApp() {
     return unsubscribe;
   }, []);
   //End Cloud messaging
-
+  
+  console.log("userId: ", userId); 
   return (
     <Stack.Navigator initialRouteName="HomeScreen">
-      <Stack.Screen name="CameraAppHomeScreen" component={CameraAppHomeScreen} options={{ title: '(sub)Home' }}/>
+      <Stack.Screen name="CameraAppHomeScreen" component={CameraAppHomeScreen} options={{ title: '(sub)Home' }} initialParams={{ userId: userId }}/>
       <Stack.Screen name="PictureViewScreen" component={PictureViewScreen} options={{ title: 'See the latest Pic' }}/>
-      <Stack.Screen name="CameraScreen" component={CameraScreen} options={{ title: 'Take another Pic' }}/>
+      <Stack.Screen name="CameraScreen" component={CameraScreen} options={{ title: 'Take another Pic' }} initialParams={{ userId: userId }}/>
     </Stack.Navigator>
 
   );

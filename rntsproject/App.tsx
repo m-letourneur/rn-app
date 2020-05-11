@@ -25,7 +25,9 @@ const HomeScreen = ({navigation}) => {
     return (
       <Button
         title="Let's go!"
-        onPress={() => navigation.navigate('ProtectedApp')}
+        onPress={() => navigation.navigate('ProtectedApp', {
+          userId: user.uid
+        })}
       />
     );
   }
